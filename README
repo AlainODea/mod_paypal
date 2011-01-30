@@ -1,0 +1,11 @@
+Zotonic Integration with PayPal through IPN
+===========================================
+This Zotonic module provides an IPN listener that verifies the IPN over SSL and then produces a Download Page and sends a link to the buyer via email.
+
+It is primarily intended for supporting the sale of digital items such as eBooks or songs.  However, it could easily be repurposed or refactored to support different or more general online store purposes.
+
+It adds a panel to the Page Editor for setting the Hosted Button ID for your Add To Cart button for each item.  If you set the item number in PayPal to the ID of your Product's Media item Page in Zotonic, then any purchase made will automatically get a Download Page upon receiving the IPN.
+
+By default IPNs are received at `/ipn`, but that is configurable in dispatch.
+
+In order to work fully you will also need `mod_download`.

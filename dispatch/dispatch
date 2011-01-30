@@ -1,0 +1,6 @@
+%% Dispatch rules for mod_paypal
+[
+    {paypal_ipn_listener,  ["ipn"], resource_paypal_ipn_listener, [
+                                            {base_path, "download"}
+                                        ]}
+].
