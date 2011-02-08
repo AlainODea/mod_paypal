@@ -126,7 +126,7 @@ send_download_link(PayerEmail, DownloadLink, Context) ->
     Vars = [{download_link, DownloadLink},
             {first_name, z_context:get_q("first_name", Context)},
             {last_name, z_context:get_q("last_name", Context)}],
-    z_email:sendq_render(PayerEmail,
+    z_email:send_render(PayerEmail,
                          "_email_download_html.tpl",
                          "_email_download_text.tpl",
                          Vars, Context).
