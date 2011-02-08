@@ -77,14 +77,13 @@ process_post(ReqData, Context) ->
 
     % verify that the receiver_email matches the config (spoof protection)
     ReceiverEmail = m_config:get_value(mod_paypal, receiver_email, ContextQs),
-    case list_to_binary(z_context:get_q("receiver_email", ContextQs)) of
-        ReceiverEmail -> ok,
-        WrongReceiver -> ?ERROR("Bad receiver_email: ~p", [WrongReceiver])
-    end,
+    ReceiverEmail = list_to_binary(z_context:get_q("receiver_email", ContextQs)),
 
-    % use id of Book RSC as the item number
-    % need to verify that it exists
-    ItemNumber = list_to_integer(z_context:get_q("item_number1", ContextQs)),
+    ItemNumberParam = case m_config:get_value(mod_paypal, sandbox_mode, Context1) of
+        undefined -> "item_number";
+        _ -> "item_number1"
+    end,
+    ItemNumber = list_to_integer(z_context:get_q(ItemNumberParam, ContextQs)),
     
     DownloadLink = store_download_rsc(TransactionId, ItemNumber, Context),
 
@@ -93,13 +92,17 @@ process_post(ReqData, Context) ->
     send_download_link(PayerEmail, DownloadLink, Context),
     ?WM_REPLY(true, ContextQs).
 
-store_download_rsc(TransactionId, BookId, Context) ->
+store_download_rsc(TransactionId, ItemNumber, Context) ->
     % somehow mark the txn_id so that de-duplication checks work
     DownloadCategoryId = m_category:name_to_id_check(download, Context),
     %#search_result{result=Result1} = z_search:search({download_transaction_id, [{cat, DownloadCategoryId}]}, Context),
     RandomId = base64:encode_to_string(crypto:rand_bytes(40)),
     BasePath = z_context:get(base_path, Context),
-    RandomPagePath = z_utils:url_path_encode("/" ++ BasePath ++ "/" ++ RandomId),
+    FileName = proplists:get_value(original_filename,
+                                   m_media:get(ItemNumber, Context)),
+    RandomPagePath = z_utils:url_path_encode("/" ++ BasePath ++ "/" ++
+                                             RandomId ++ "/" ++
+                                             binary_to_list(FileName)),
     Props = [{category_id, DownloadCategoryId},
              {is_published, false},
              {transaction_id, TransactionId},
@@ -108,9 +111,9 @@ store_download_rsc(TransactionId, BookId, Context) ->
     F = fun(Ctx) ->
         % add a Download RSC to Zotonic
         {ok, DownloadId} = m_rsc:insert(Props, Ctx),
-        % add a page connection to the RSC to the Book that was purchased
+        % add a page connection to the RSC to the Media that was purchased
         % FIXME: this crashes the transaction with a rollback
-        {ok, _} = m_edge:insert(DownloadId, depiction, BookId, Ctx)
+        {ok, _} = m_edge:insert(DownloadId, depiction, ItemNumber, Ctx)
     end,
     AdminContext = z_acl:sudo(Context),
 
